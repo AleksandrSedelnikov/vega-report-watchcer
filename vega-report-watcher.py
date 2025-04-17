@@ -269,6 +269,10 @@ try:
             timestamp_bd= datetime.fromtimestamp(unix_time * 1e-3)
             deveui = data_DB[i][2]
             macbs = data_DB[i][4]
+            if (find_index(devices_list, deveui) == -1):
+                if(settings_app[3] == 0):
+                    print(f'[Ошибка в отчёте {timestamp_bd}]: К сожалению, данное устройство: "{deveui}" пока не поддерживается\n= = =')
+                continue
             type_device = devices_list[find_index(devices_list, deveui)][1]
             if (settings_app[1] != ''):
                 if (type_device != settings_app[1]):
@@ -278,6 +282,7 @@ try:
                 if (deveui != settings_app[2]):
                     continue
             """
+                
 
             # Smart Badge Вега
             if (type_device == 'Smart Badge' and port == 2): # формат для данных, приходящих на 2 порт LoRaWAN!!!
@@ -913,10 +918,10 @@ try:
                 ws.cell(row=last_row+1, column=11, value=state_in_decode)
                 ws.cell(row=last_row+1, column=12, value=indications_discr_in_decode)
 
-            
             elif (type_device not in support_device_list):
                 if (settings_app[0] == 1):
                     print(f'[Ошибка в отчёте {timestamp_bd}]: К сожалению, данное устройство: "{deveui}" ({type_device}) пока не поддерживается\n= = =')
+
             else:
                 if (settings_app[0] == 1):
                     print(f'[Ошибка в отчёте {timestamp_bd}]: К сожалению, данный вид отчёта от устройства типа: "{type_device}" приходящий на порт: "{port}" пока не поддерживается\n= = =')
