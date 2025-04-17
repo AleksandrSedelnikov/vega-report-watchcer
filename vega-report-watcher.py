@@ -8,8 +8,8 @@ from time import sleep
 import os
 import sys
 
-version = '1.0.0.0 (от 16.04.2025)'
-version_name = 'аист'
+version = '1.0.0.0 (от 17.04.2025)'
+version_name = 'арфа'
 
 # лист со списком поддерживаемых устройств
 support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11']
