@@ -8,14 +8,17 @@ from time import sleep
 import os
 import sys
 
-version = '1.0.0.0 (от 17.04.2025)'
-version_name = 'арфа'
+version = '1.0.0.1 (от 22.04.2025)'
+version_name = 'букварь'
 
 # лист со списком поддерживаемых устройств
-support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11']
+support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11', 'Smart-MC0101', 'Smart-SS0102']
 
 # лист со списком ус-в в формате каждый элемент - это подмассив формата ['deveui', 'type_device']!!!
-devices_list = [['0900F6FF31C6CE39', 'СИ-12'], ['0B00F4FFB1BA4E45', 'ТС-12'], ['0D00F2FF91B66E49', 'СИ-12'], ['0C00F3FFF4350BCA', 'ТС-12'], ['3735363367318013', 'Smart-HS0101'], ['373536334D316614', 'Smart-MS0101'], ['0600F9FF555DAAA2', 'ТС-12'], ['70B3D50AD00101A3', 'Smart-WB0101'], ['F7ABC50C11143E54', 'Smart Badge'], ['70B3D50AD0010A88', 'ТД-11'], ['70B3D50AD00101BB', 'Smart-WB0101'], ['0800F7FF6BC3943C', 'ТС-12']]
+devices_list = [['0900F6FF31C6CE39', 'СИ-12'], ['0B00F4FFB1BA4E45', 'ТС-12'], ['0D00F2FF91B66E49', 'СИ-12'], ['0C00F3FFF4350BCA', 'ТС-12'], 
+                ['3735363367318013', 'Smart-HS0101'], ['373536334D316614', 'Smart-MS0101'], ['0600F9FF555DAAA2', 'ТС-12'], ['70B3D50AD00101A3', 'Smart-WB0101'], 
+                ['F7ABC50C11143E54', 'Smart Badge'], ['70B3D50AD0010A88', 'ТД-11'], ['70B3D50AD00101BB', 'Smart-WB0101'], ['0800F7FF6BC3943C', 'ТС-12'], 
+                ['3735363351318613', 'Smart-HS0101'], ['3735363356317B13','Smart-MC0101'], ['373536356739790E', 'Smart-SS0102']]
 
 # настройки работы приложения
 settings_app = [0, '', '', 0] # отображать ошибки (0/1), отображать только отчёты указанного устройства (''/'Устройство'), отображать только для определенного deveui (''/'DEVEUI), выводить все или только новые отчёты (0 - все , 1 - только новые)
@@ -243,6 +246,30 @@ for i in devices_list:
         ws.cell(row=1, column=10, value=f'Верхний предел температуры датчка, *C')
         ws.cell(row=1, column=11, value=f'Состояние дискретного входа')
         ws.cell(row=1, column=12, value=f'Показатели на дискретном входе')
+    elif (i[1] == 'Smart-MC0101'):
+        ws.cell(row=1, column=1, value=f'Время отчёта')
+        ws.cell(row=1, column=2, value=f'Принято с БС')
+        ws.cell(row=1, column=3, value=f'Тип пакета')
+        ws.cell(row=1, column=4, value=f'Заряд батареи, %')
+        ws.cell(row=1, column=5, value=f'Температура, *C')
+        ws.cell(row=1, column=6, value=f'Причина отправки пакета')
+        ws.cell(row=1, column=7, value=f'Состояние входов')
+        ws.cell(row=1, column=8, value=f'Время снятия показаний/Время формирования пакета')
+    elif(i[1] == 'Smart-SS0102'):
+        ws.cell(row=1, column=1, value=f'Время отчёта')
+        ws.cell(row=1, column=2, value=f'Принято с БС')
+        ws.cell(row=1, column=3, value='Тип пакета')
+        ws.cell(row=1, column=4, value='Время формирования пакета')
+        ws.cell(row=1, column=5, value='Текущий статус')
+        ws.cell(row=1, column=6, value='Напряжение с приемника, мВ')
+        ws.cell(row=1, column=7, value='Ток передатчика, мА')
+        ws.cell(row=1, column=8, value='Температура на термисторе, *C')
+        ws.cell(row=1, column=9, value='Флаг - используется батарея 1')
+        ws.cell(row=1, column=10, value='Флаг - используется батарея 2')
+        ws.cell(row=1, column=11, value='Флаг присутствия батареи 1')
+        ws.cell(row=1, column=12, value='Флаг присутствия батареи 2')
+        ws.cell(row=1, column=13, value='Заряд батареи 1, %')
+        ws.cell(row=1, column=14, value='Заряд батареи 2, %')
 
 
 # подключение к файлу базы данных
@@ -918,6 +945,140 @@ try:
                 ws.cell(row=last_row+1, column=11, value=state_in_decode)
                 ws.cell(row=last_row+1, column=12, value=indications_discr_in_decode)
 
+            
+            elif (type_device == 'Smart-MC0101' and port == 2):
+                type_packet = human_watch(data_raw[:1])
+                battery = human_watch(data_raw[1:2])
+                temperature = human_watch(data_raw[3:5], True) // 10
+                reason_send_packet = human_watch(data_raw[5:6])
+                if (reason_send_packet == 0):
+                    reason_send_packet_decode = 'по времени'
+                elif (reason_send_packet == 1):
+                    reason_send_packet_decode = 'сработал датчик открытия 1'
+                elif (reason_send_packet == 2):
+                    reason_send_packet_decode = 'сработал датчик открытия 2'
+                else:
+                    reason_send_packet_decode = 'неизвестная причина'
+                state_in = f'{human_watch(data_raw[6:7]):08b}'
+                state_in_decode = ''
+                if (state_in[0] == 1):
+                    state_in_decode += 'Датчик открытия 1 (состояние магнита) - поднесен\n'
+                else:
+                    state_in_decode += 'Датчик открытия 1 (состояние магнита) - не поднесен\n'
+                if (state_in[1] == 1):
+                    state_in_decode += 'Датчик открытия 2 (состояние магнита) - поднесен'
+                else:
+                    state_in_decode += 'Датчик открытия 2 (состояние магнита) - не поднесен'
+                unix_time = human_watch(data_raw[7:11])
+                timestamp = datetime.fromtimestamp(unix_time * 1e-3)
+                ws = wb[f'{deveui} ({type_device})']
+                last_row = 0
+                for row in ws.iter_rows(values_only=True):
+                    if any(cell is not None and cell != '' for cell in row):
+                        last_row += 1
+                ws.cell(row=last_row+1, column=1, value=timestamp_bd)
+                ws.cell(row=last_row+1, column=2, value=macbs)
+                ws.cell(row=last_row+1, column=3, value=type_packet)
+                ws.cell(row=last_row+1, column=4, value=battery)
+                ws.cell(row=last_row+1, column=5, value=temperature)
+                ws.cell(row=last_row+1, column=6, value=reason_send_packet_decode)
+                ws.cell(row=last_row+1, column=7, value=state_in_decode)
+                ws.cell(row=last_row+1, column=8, value=timestamp)
+
+            elif (type_device == 'Smart-SS0102' and port == 2):
+                type_packet = human_watch(data_raw[:1])
+                if (type_packet == 5):
+                    type_packet_decode = 'тревога по обнаружению пожара'
+                elif (type_packet == 6):
+                    type_packet_decode = 'тест'
+                elif (type_packet == 7):
+                    type_packet_decode = 'тревога по солидарной линии работы'
+                elif (type_packet == 8):
+                    type_packet_decode = 'снятие с крепежной платформы'
+                elif (type_packet == 9):
+                    type_packet_decode = 'сброс тревоги'
+                elif (type_packet == 10):
+                    type_packet_decode = 'низкий заряд АКБ'
+                elif (type_packet == 11):
+                    type_packet_decode = 'старт охраны датчика'
+                elif (type_packet == 12):
+                    type_packet_decode = 'стоп охраны датчика'
+                elif (type_packet == 13):
+                    type_packet_decode = 'резерв'
+                elif (type_packet == 14):
+                    type_packet_decode = 'ошибка датчика'
+                elif (type_packet == 15):
+                    type_packet_decode = 'запыленность камеры датчика'
+                elif (type_packet == 6):
+                    type_packet_decode = 'данные по расписанию'
+                unix_time = human_watch(data_raw[1:5])
+                timestamp = datetime.fromtimestamp(unix_time * 1e-3)
+                current_status = f'{human_watch(data_raw[5:6]):08b}'
+                current_status_decode = ''
+                if (current_status[0] == 1):
+                    current_status_decode += 'запыленность\n'
+                if (current_status[1] == 1):
+                    current_status_decode += 'пожар\n'
+                if (current_status[2] == 1):
+                    current_status_decode += 'тест\n'
+                if (current_status[3] == 1):
+                    current_status_decode += 'дежурный подрежим\n'
+                if (current_status[4] == 1):
+                    current_status_decode += 'неисправность\n'
+                if (current_status[5] == 1):
+                    current_status_decode += 'тревога\n'
+                if (current_status[6] == 1):
+                    current_status_decode += 'снятие с крепежной платформы\n'
+                if (current_status[7] == 1):
+                    current_status_decode += 'сигнал по линии солидарной работы\n'
+                voltage = human_watch(data_raw[6:8])
+                amperage = human_watch(data_raw[8:10])
+                temperature_termistor = human_watch(data_raw[10:12])
+                flag_use_battery_one = human_watch(data_raw[12:13])
+                if (flag_use_battery_one == 1):
+                    flag_use_battery_one_decode = 'используется'
+                else:
+                    flag_use_battery_one_decode = 'не используется'
+                flag_use_battery_two = human_watch(data_raw[13:14])
+                if (flag_use_battery_two == 1):
+                    flag_use_battery_two_decode = 'используется'
+                else:
+                    flag_use_battery_two_decode = 'не используется'
+                flag_presence_battery_one = human_watch(data_raw[14:15])
+                if (flag_presence_battery_one == 1):
+                    flag_presence_battery_one_decode = 'присутствует'
+                else:
+                    flag_presence_battery_one_decode = 'отсутствует'
+                flag_presence_battery_two = human_watch(data_raw[15:16])
+                if (flag_presence_battery_two == 1):
+                    flag_presence_battery_two_decode = 'присутствует'
+                else:
+                    flag_presence_battery_two_decode = 'отсутствует'
+                battery_one = human_watch(data_raw[16:17])
+                battery_two = human_watch(data_raw[17:18])
+
+                ws = wb[f'{deveui} ({type_device})']
+                last_row = 0
+                for row in ws.iter_rows(values_only=True):
+                    if any(cell is not None and cell != '' for cell in row):
+                        last_row += 1
+                ws.cell(row=last_row+1, column=1, value=timestamp_bd)
+                ws.cell(row=last_row+1, column=2, value=macbs)
+                ws.cell(row=last_row+1, column=3, value=type_packet_decode)
+                ws.cell(row=last_row+1, column=4, value=timestamp)
+                ws.cell(row=last_row+1, column=5, value=current_status_decode)
+                ws.cell(row=last_row+1, column=6, value=voltage)
+                ws.cell(row=last_row+1, column=7, value=amperage)
+                ws.cell(row=last_row+1, column=8, value=temperature_termistor)
+                ws.cell(row=last_row+1, column=9, value=flag_use_battery_one)
+                ws.cell(row=last_row+1, column=10, value=flag_use_battery_two)
+                ws.cell(row=last_row+1, column=11, value=flag_presence_battery_one)
+                ws.cell(row=last_row+1, column=12, value=flag_presence_battery_two)
+                ws.cell(row=last_row+1, column=13, value=battery_one)
+                ws.cell(row=last_row+1, column=14, value=battery_two)
+
+
+            # не поддерживаемые устройства
             elif (type_device not in support_device_list):
                 if (settings_app[0] == 1):
                     print(f'[Ошибка в отчёте {timestamp_bd}]: К сожалению, данное устройство: "{deveui}" ({type_device}) пока не поддерживается\n= = =')
@@ -982,6 +1143,16 @@ try:
             elif (type_device == 'ТД-11' and port == 2):
                 print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
                 print(f'Тип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nПроверка лимитов: {exceed_limits_decode}\nВремя: {timestamp}\nТемпература устройства: {temperature_device} *C\nТемпература датчика NTC: {temperature_ntc} *C\nНижний предел температуры датчика: {lower_threshold_temperature_sensor} *C\nВерхний предел температуры датчика: {upper_threshold_temperature_sensor} *C\n[Состояние входа (начало)]\n{state_in_decode}\n[Состояние входа (конец)]\nПоказатели на дискретном входе: {indications_discr_in_decode}\n= = =')
+
+            # демонстрация Smart-MC0101 Вега
+            elif (type_device == 'Smart-MC0101' and port == 2):
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
+                print(f'Тип пакета: {type_packet}\nЗаряд батареи: {battery}%\nТемпература: {temperature} *C\nПричина отправки: {reason_send_packet_decode}\nСостояние входов:\n{state_in_decode}\nВремя снятия показаний/Время формирования пакета: {timestamp}\n= = =')
+        
+            # демонстрация Smart-SS0102 Вега
+            elif (type_device == 'Smart-SS0102' and port == 2):
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
+                print(f'Тип пакета: {type_packet_decode}\nВремя формирования пакета: {timestamp}\nТекущий статус: {current_status_decode}\nНапряжение с приемника: {voltage} мВ\nТок передатчика: {amperage} мА\nТемпература на термисторе: {temperature_termistor} *C\nФлаг - используется батарея 1: {flag_use_battery_one_decode}\nФлаг - используется батарея 2: {flag_presence_battery_two_decode}\nФлаг присутствия батареи 1: {flag_presence_battery_one_decode}\nФлаг присутствия батареи 2: {flag_presence_battery_two_decode}\nЗаряд батареи 1: {battery_one}%\nЗаряд батареи 2: {battery_two}%\n= = =')
         
         # эксклюзивное оповещение для первого чтения БД
         if (count == 0):
