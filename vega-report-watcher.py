@@ -949,7 +949,7 @@ try:
             elif (type_device == 'Smart-MC0101' and port == 2):
                 type_packet = human_watch(data_raw[:1])
                 battery = human_watch(data_raw[1:2])
-                temperature = human_watch(data_raw[3:5], True) // 10
+                temperature = human_watch(data_raw[3:5], True) / 10
                 reason_send_packet = human_watch(data_raw[5:6])
                 if (reason_send_packet == 0):
                     reason_send_packet_decode = 'по времени'
