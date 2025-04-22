@@ -1152,7 +1152,7 @@ try:
             # демонстрация Smart-SS0102 Вега
             elif (type_device == 'Smart-SS0102' and port == 2):
                 print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nВремя формирования пакета: {timestamp}\nТекущий статус: {current_status_decode}\nНапряжение с приемника: {voltage} мВ\nТок передатчика: {amperage} мА\nТемпература на термисторе: {temperature_termistor} *C\nФлаг - используется батарея 1: {flag_use_battery_one_decode}\nФлаг - используется батарея 2: {flag_presence_battery_two_decode}\nФлаг присутствия батареи 1: {flag_presence_battery_one_decode}\nФлаг присутствия батареи 2: {flag_presence_battery_two_decode}\nЗаряд батареи 1: {battery_one}%\nЗаряд батареи 2: {battery_two}%\n= = =')
+                print(f'Тип пакета: {type_packet_decode}\nВремя формирования пакета: {timestamp}\nТекущий статус: {current_status_decode}\nНапряжение с приемника: {voltage} мВ\nТок передатчика: {amperage} мА\nТемпература на термисторе: {temperature_termistor} *C\nФлаг - используется батарея 1: {flag_use_battery_one_decode}\nФлаг - используется батарея 2: {flag_use_battery_two_decode}\nФлаг присутствия батареи 1: {flag_presence_battery_one_decode}\nФлаг присутствия батареи 2: {flag_presence_battery_two_decode}\nЗаряд батареи 1: {battery_one}%\nЗаряд батареи 2: {battery_two}%\n= = =')
         
         # эксклюзивное оповещение для первого чтения БД
         if (count == 0):
