@@ -13,14 +13,14 @@ version = '1.0.0.2 (от 12.05.2025)'
 version_name = 'верба'
 
 # лист со списком поддерживаемых устройств
-support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11', 'Smart-MC0101', 'Smart-SS0102', 'Smart-UM0101']
+support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11v2', 'Smart-MC0101', 'Smart-SS0102', 'Smart-UM0101']
 
 
 # настройки работы приложения
 settings_app = [0, '', '', 0] # отображать ошибки (0/1), отображать только отчёты указанного устройства (''/'Устройство'), отображать только для определенного deveui (''/'DEVEUI), выводить все или только новые отчёты (0 - все , 1 - только новые)
 
 
-print(f'[Vega Report Watcher]\nДанная программа создана для предоставления отчетов устройств в понятном для любого человека виде.\nВ данный момент поддержимаются следующие виды устройств: {", ".join(support_device_list)}.\nВерсия программы: {version} (кодовое наименование: {version_name}).')
+print(f'[Vega Report Watcher]\nДанная программа создана для предоставления отчетов устройств в понятном для любого человека виде.\nВ данный момент поддерживаются следующие виды устройств: {", ".join(support_device_list)}.\nВерсия программы: {version} (кодовое наименование: {version_name}).')
 
 
 # базовое окно Tkinter
@@ -86,13 +86,21 @@ cursor = connection.cursor()
 devices_DB = cursor.execute(f"SELECT devname, deveui FROM devices").fetchall()
 devices_list = []
 for i in devices_DB:
-    devices_list.append([f'{i[1]}', f'{i[0]}'.split(' ')[0]])
+    if (i[1] == ''):
+        continue
+    try:
+        classroom = f'{i[0]}'.split(' ')[1]
+        if (classroom == 'Badge'):
+            devices_list.append([f'{i[1]}', f'Smart Badge', f'ауд. неизвестно'])
+        devices_list.append([f'{i[1]}', f'{i[0]}'.split(' ')[0], f'ауд. {classroom}'])
+    except:
+        devices_list.append([f'{i[1]}', f'{i[0]}'.split(' ')[0], f'ауд. неизвестно'])
 
 bs_DB = cursor.execute(f"SELECT mac, comment, hostaddress FROM bs").fetchall()
 bs_list = []
 for i in bs_DB:
     name = json.loads(i[1])['name']
-    bs_list.append([f'{i[0]}', f'{name}'.split('_')[0], {i[2]}])
+    bs_list.append([f'{i[0]}', f'{name}'.split('_')[0], i[2]])
 
 print('[Генерация динамических массивов устройств и базовых станций завершена]')
 
@@ -110,7 +118,7 @@ while True:
     if (variable_view_fix_deveui == '1'):
         print('DEVEUI - Тип устройства')
         for i in devices_list:
-            print(f'{i[0]} - {i[1]}')
+            print(f'{i[0]} - {i[1]} ({i[2]})')
         continue
     response = find_index(devices_list, variable_view_fix_deveui)
     if (response == None or response == -1):
@@ -156,158 +164,161 @@ sleep(1)
 wb = Workbook()
 ws = wb[f'Sheet']
 ws.title = "Основная информация"
-ws.cell(row=2, column=2, value=f'В данном документе для каждого устройства создан отдельный лист формата DEVEUI (DEVICE_TYPE)')
-ws.cell(row=2, column=3, value=f'В этих листах хранятся отформатированные отчёты из таблицы (rawdata) из базы данных сервера Веги')
-ws.cell(row=2, column=4, value=f'Форматы столбцов разнятся, но у всех первый столбец обозначает время принятия отчёта на сервере и все отчёты идут сверху вниз, от старых к новым')
+ws.cell(row=3, column=2, value=f'В данном документе для каждого устройства создан отдельный лист формата DEVEUI (DEVICE_TYPE)')
+ws.cell(row=3, column=3, value=f'В этих листах хранятся отформатированные отчёты из таблицы (rawdata) из базы данных сервера Веги')
+ws.cell(row=3, column=4, value=f'Форматы столбцов разнятся, но у всех первый столбец обозначает время принятия отчёта на сервере и все отчёты идут сверху вниз, от старых к новым')
 
 for i in devices_list:
     wb.create_sheet(f'{i[0]} ({i[1]})')
     ws = wb[f'{i[0]} ({i[1]})']
     if (i[1] == 'Smart-MS0101'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Тип пакета')
-        ws.cell(row=1, column=4, value=f'Заряд батареи, %')
-        ws.cell(row=1, column=5, value=f'Основные параметры')
-        ws.cell(row=1, column=6, value=f'Температура, *C')
-        ws.cell(row=1, column=7, value=f'Причина отправки пакета')
-        ws.cell(row=1, column=8, value=f'Время')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Тип пакета')
+        ws.cell(row=3, column=4, value=f'Заряд батареи, %')
+        ws.cell(row=3, column=5, value=f'Основные параметры')
+        ws.cell(row=3, column=6, value=f'Температура, *C')
+        ws.cell(row=3, column=7, value=f'Причина отправки пакета')
+        ws.cell(row=3, column=8, value=f'Время')
     elif (i[1] == 'ТС-12'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Биты присутствия')
-        ws.cell(row=1, column=4, value=f'Причина отправки пакета')
-        ws.cell(row=1, column=5, value=f'Координаты')
-        ws.cell(row=1, column=6, value=f'Количество принятых пакетов')
-        ws.cell(row=1, column=7, value=f'Количество отправленных пакетов')
-        ws.cell(row=1, column=8, value=f'Заряд батареи, мВ')
-        ws.cell(row=1, column=9, value=f'RSSI, dBm')
-        ws.cell(row=1, column=10, value=f'SNR, dB')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Биты присутствия')
+        ws.cell(row=3, column=4, value=f'Причина отправки пакета')
+        ws.cell(row=3, column=5, value=f'Координаты')
+        ws.cell(row=3, column=6, value=f'Количество принятых пакетов')
+        ws.cell(row=3, column=7, value=f'Количество отправленных пакетов')
+        ws.cell(row=3, column=8, value=f'Заряд батареи, мВ')
+        ws.cell(row=3, column=9, value=f'RSSI, dBm')
+        ws.cell(row=3, column=10, value=f'SNR, dB')
     elif (i[1] == 'Smart-WB0101'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Режим работы')
-        ws.cell(row=1, column=4, value=f'Заряд батареи, %')
-        ws.cell(row=1, column=5, value=f'Время')
-        ws.cell(row=1, column=6, value=f'Температура')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Режим работы')
+        ws.cell(row=3, column=4, value=f'Заряд батареи, %')
+        ws.cell(row=3, column=5, value=f'Время')
+        ws.cell(row=3, column=6, value=f'Температура')
     elif (i[1] == 'СИ-12'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Тип пакета')
-        ws.cell(row=1, column=4, value=f'Заряд батареи, %')
-        ws.cell(row=1, column=5, value=f'Основные параметры')
-        ws.cell(row=1, column=6, value=f'Время')
-        ws.cell(row=1, column=7, value=f'Температура, *C')
-        ws.cell(row=1, column=8, value=f'Показание на входе 1')
-        ws.cell(row=1, column=9, value=f'Показание на входе 2')
-        ws.cell(row=1, column=10, value=f'Показание на входе 3')
-        ws.cell(row=1, column=11, value=f'Показание на входе 4')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Тип пакета')
+        ws.cell(row=3, column=4, value=f'Заряд батареи, %')
+        ws.cell(row=3, column=5, value=f'Основные параметры')
+        ws.cell(row=3, column=6, value=f'Время')
+        ws.cell(row=3, column=7, value=f'Температура, *C')
+        ws.cell(row=3, column=8, value=f'Показание на входе 1')
+        ws.cell(row=3, column=9, value=f'Показание на входе 2')
+        ws.cell(row=3, column=10, value=f'Показание на входе 3')
+        ws.cell(row=3, column=11, value=f'Показание на входе 4')
     elif (i[1] == 'Smart-HS0101'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Тип пакета')
-        ws.cell(row=1, column=4, value=f'Заряд батареи, %')
-        ws.cell(row=1, column=5, value=f'Время')
-        ws.cell(row=1, column=6, value=f'Температура, *C')
-        ws.cell(row=1, column=7, value=f'Влажность, %')
-        ws.cell(row=1, column=8, value=f'Состояние датчика открытия 1')
-        ws.cell(row=1, column=9, value=f'Состояние датчика открытия 2')
-        ws.cell(row=1, column=10, value=f'Угол отклонения от вертикали, *')
-        ws.cell(row=1, column=11, value=f'Нижний порог влажности, %')
-        ws.cell(row=1, column=12, value=f'Верхний порог влажности, %')
-        ws.cell(row=1, column=13, value=f'Нижний порог температуры, *C')
-        ws.cell(row=1, column=14, value=f'Верхний порог температуры, *C')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Тип пакета')
+        ws.cell(row=3, column=4, value=f'Заряд батареи, %')
+        ws.cell(row=3, column=5, value=f'Время')
+        ws.cell(row=3, column=6, value=f'Температура, *C')
+        ws.cell(row=3, column=7, value=f'Влажность, %')
+        ws.cell(row=3, column=8, value=f'Состояние датчика открытия 1')
+        ws.cell(row=3, column=9, value=f'Состояние датчика открытия 2')
+        ws.cell(row=3, column=10, value=f'Угол отклонения от вертикали, *')
+        ws.cell(row=3, column=11, value=f'Нижний порог влажности, %')
+        ws.cell(row=3, column=12, value=f'Верхний порог влажности, %')
+        ws.cell(row=3, column=13, value=f'Нижний порог температуры, *C')
+        ws.cell(row=3, column=14, value=f'Верхний порог температуры, *C')
     elif (i[1] == 'Smart Badge'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Тип пакета')
-        ws.cell(row=1, column=4, value=f'Причина формирования пакета')
-        ws.cell(row=1, column=5, value=f'Заряд батареи, %')
-        ws.cell(row=1, column=6, value=f'Время')
-        ws.cell(row=1, column=7, value=f'Температура, *C')
-        ws.cell(row=1, column=8, value=f'Угол отклонения от вертикали, *')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Тип пакета')
+        ws.cell(row=3, column=4, value=f'Причина формирования пакета')
+        ws.cell(row=3, column=5, value=f'Заряд батареи, %')
+        ws.cell(row=3, column=6, value=f'Время')
+        ws.cell(row=3, column=7, value=f'Температура, *C')
+        ws.cell(row=3, column=8, value=f'Угол отклонения от вертикали, *')
         # для типа 1
-        ws.cell(row=1, column=9, value=f'Широта (только тип 1)')
-        ws.cell(row=1, column=10, value=f'Долгота (только тип 1)')
-        ws.cell(row=1, column=11, value=f'Курс, * (только тип 1)')
-        ws.cell(row=1, column=12, value=f'Скорость, км/ч (только тип 1)')
-        ws.cell(row=1, column=13, value=f'Высота над ср. уровнем моря, м. (только тип 1)')
-        ws.cell(row=1, column=14, value=f'Количество видимых спутников (только тип 1)')
-        ws.cell(row=1, column=15, value=f'Количество спутников решения (только тип 1)')
+        ws.cell(row=3, column=9, value=f'Широта (только тип 1)')
+        ws.cell(row=3, column=10, value=f'Долгота (только тип 1)')
+        ws.cell(row=3, column=11, value=f'Курс, * (только тип 1)')
+        ws.cell(row=3, column=12, value=f'Скорость, км/ч (только тип 1)')
+        ws.cell(row=3, column=13, value=f'Высота над ср. уровнем моря, м. (только тип 1)')
+        ws.cell(row=3, column=14, value=f'Количество видимых спутников (только тип 1)')
+        ws.cell(row=3, column=15, value=f'Количество спутников решения (только тип 1)')
         # для типа 2
-        ws.cell(row=1, column=16, value=f'Тип BLE-маяка (только тип 2)')
-        ws.cell(row=1, column=17, value=f'Наименование BLE-маяка (только тип 2)')
-        ws.cell(row=1, column=18, value=f'RSSI эталонное, dBm (только тип 2)')
-        ws.cell(row=1, column=19, value=f'TX_POWER (только тип 2)')
+        ws.cell(row=3, column=16, value=f'Тип BLE-маяка (только тип 2)')
+        ws.cell(row=3, column=17, value=f'Наименование BLE-маяка (только тип 2)')
+        ws.cell(row=3, column=18, value=f'RSSI эталонное, dBm (только тип 2)')
+        ws.cell(row=3, column=19, value=f'TX_POWER (только тип 2)')
         # для типа 5
-        ws.cell(row=1, column=20, value=f'MAC для BLE-меток №1,2,3 (только тип 5)')
-        ws.cell(row=1, column=21, value=f'Заряд батареи для BLE-меток №1,2,3, % (только тип 5)')
-        ws.cell(row=1, column=22, value=f'Температура для BLE-меток №1,2,3, *C (только тип 5)')
-        ws.cell(row=1, column=23, value=f'Влажность для BLE-меток №1,2,3, % (только тип 5)')
-        ws.cell(row=1, column=24, value=f'RSSI эталонное для BLE-меток №1,2,3, dBm (только тип 5)')
-        ws.cell(row=1, column=25, value=f'TX_POWER для BLE-меток №1,2,3 (только тип 5)')
+        ws.cell(row=3, column=20, value=f'MAC для BLE-меток №1,2,3 (только тип 5)')
+        ws.cell(row=3, column=21, value=f'Заряд батареи для BLE-меток №1,2,3, % (только тип 5)')
+        ws.cell(row=3, column=22, value=f'Температура для BLE-меток №1,2,3, *C (только тип 5)')
+        ws.cell(row=3, column=23, value=f'Влажность для BLE-меток №1,2,3, % (только тип 5)')
+        ws.cell(row=3, column=24, value=f'RSSI эталонное для BLE-меток №1,2,3, dBm (только тип 5)')
+        ws.cell(row=3, column=25, value=f'TX_POWER для BLE-меток №1,2,3 (только тип 5)')
         # общая 
-        ws.cell(row=1, column=26, value=f'Состояние меток СИЗ')
-    elif (i[1] == 'ТД-11'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Тип пакета')
-        ws.cell(row=1, column=4, value=f'Заряд батареи, %')
-        ws.cell(row=1, column=5, value=f'Состояние лимитов')
-        ws.cell(row=1, column=6, value=f'Время')
-        ws.cell(row=1, column=7, value=f'Температура устройства, *C')
-        ws.cell(row=1, column=8, value=f'Температура датчика NTC, *C')
-        ws.cell(row=1, column=9, value=f'Нижний предел температуры датчка, *C')
-        ws.cell(row=1, column=10, value=f'Верхний предел температуры датчка, *C')
-        ws.cell(row=1, column=11, value=f'Состояние дискретного входа')
-        ws.cell(row=1, column=12, value=f'Показатели на дискретном входе')
+        ws.cell(row=3, column=26, value=f'Состояние меток СИЗ')
+    elif (i[1] == 'ТД-11v2'):
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Тип пакета')
+        ws.cell(row=3, column=4, value=f'Заряд батареи, %')
+        ws.cell(row=3, column=5, value=f'Состояние лимитов')
+        ws.cell(row=3, column=6, value=f'Время')
+        ws.cell(row=3, column=7, value=f'Температура устройства, *C')
+        ws.cell(row=3, column=8, value=f'Температура датчика NTC, *C')
+        ws.cell(row=3, column=9, value=f'Нижний предел температуры датчка, *C')
+        ws.cell(row=3, column=10, value=f'Верхний предел температуры датчка, *C')
+        ws.cell(row=3, column=11, value=f'Состояние дискретного входа')
+        ws.cell(row=3, column=12, value=f'Показатели на дискретном входе')
     elif (i[1] == 'Smart-MC0101'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value=f'Тип пакета')
-        ws.cell(row=1, column=4, value=f'Заряд батареи, %')
-        ws.cell(row=1, column=5, value=f'Температура, *C')
-        ws.cell(row=1, column=6, value=f'Причина отправки пакета')
-        ws.cell(row=1, column=7, value=f'Состояние входов')
-        ws.cell(row=1, column=8, value=f'Время снятия показаний/Время формирования пакета')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value=f'Тип пакета')
+        ws.cell(row=3, column=4, value=f'Заряд батареи, %')
+        ws.cell(row=3, column=5, value=f'Температура, *C')
+        ws.cell(row=3, column=6, value=f'Причина отправки пакета')
+        ws.cell(row=3, column=7, value=f'Состояние входов')
+        ws.cell(row=3, column=8, value=f'Время снятия показаний/Время формирования пакета')
     elif(i[1] == 'Smart-SS0102'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value='Тип пакета')
-        ws.cell(row=1, column=4, value='Время формирования пакета')
-        ws.cell(row=1, column=5, value='Текущий статус')
-        ws.cell(row=1, column=6, value='Напряжение с приемника, мВ')
-        ws.cell(row=1, column=7, value='Ток передатчика, мА')
-        ws.cell(row=1, column=8, value='Температура на термисторе, *C')
-        ws.cell(row=1, column=9, value='Флаг - используется батарея 1')
-        ws.cell(row=1, column=10, value='Флаг - используется батарея 2')
-        ws.cell(row=1, column=11, value='Флаг присутствия батареи 1')
-        ws.cell(row=1, column=12, value='Флаг присутствия батареи 2')
-        ws.cell(row=1, column=13, value='Заряд батареи 1, %')
-        ws.cell(row=1, column=14, value='Заряд батареи 2, %')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value='Тип пакета')
+        ws.cell(row=3, column=4, value='Время формирования пакета')
+        ws.cell(row=3, column=5, value='Текущий статус')
+        ws.cell(row=3, column=6, value='Напряжение с приемника, мВ')
+        ws.cell(row=3, column=7, value='Ток передатчика, мА')
+        ws.cell(row=3, column=8, value='Температура на термисторе, *C')
+        ws.cell(row=3, column=9, value='Флаг - используется батарея 1')
+        ws.cell(row=3, column=10, value='Флаг - используется батарея 2')
+        ws.cell(row=3, column=11, value='Флаг присутствия батареи 1')
+        ws.cell(row=3, column=12, value='Флаг присутствия батареи 2')
+        ws.cell(row=3, column=13, value='Заряд батареи 1, %')
+        ws.cell(row=3, column=14, value='Заряд батареи 2, %')
     elif(i[1] == 'Smart-UM0101'):
-        ws.cell(row=1, column=1, value=f'Время отчёта')
-        ws.cell(row=1, column=2, value=f'Принято с БС')
-        ws.cell(row=1, column=3, value='Тип пакета')
-        ws.cell(row=1, column=4, value='Заряд батареи, %')
-        ws.cell(row=1, column=5, value='Время снятия показаний')
-        ws.cell(row=1, column=6, value='Состояние питания')
-        ws.cell(row=1, column=7, value='Температура, *C')
-        ws.cell(row=1, column=8, value='Влажность, %')
-        ws.cell(row=1, column=9, value='Уровень освещенности')
-        ws.cell(row=1, column=10, value='Уровень шума')
-        ws.cell(row=1, column=11, value='Уровень CO2, ppm')
-        ws.cell(row=1, column=12, value='Угол отклонения от вертикали')
-        ws.cell(row=1, column=13, value='Нижний порог температуры, *C')
-        ws.cell(row=1, column=14, value='Верхний порог температуры, *C')
-        ws.cell(row=1, column=15, value='Нижний порог влажности, %')
-        ws.cell(row=1, column=16, value='Верхний порог влажности, %')
-        ws.cell(row=1, column=17, value='Нижний порог уровня освещенности')
-        ws.cell(row=1, column=18, value='Верхний порог уровня освещенности')
-        ws.cell(row=1, column=19, value='Нижний порог уровня шума')
-        ws.cell(row=1, column=20, value='Верхний порог уровня шума')
-        ws.cell(row=1, column=21, value='Нижний порог уровня CO2, ppm')
-        ws.cell(row=1, column=22, value='Верхний порог уровня CO2, ppm')
+        ws.cell(row=3, column=1, value=f'Время отчёта')
+        ws.cell(row=3, column=2, value=f'Принято с БС')
+        ws.cell(row=3, column=3, value='Тип пакета')
+        ws.cell(row=3, column=4, value='Заряд батареи, %')
+        ws.cell(row=3, column=5, value='Время снятия показаний')
+        ws.cell(row=3, column=6, value='Состояние питания')
+        ws.cell(row=3, column=7, value='Температура, *C')
+        ws.cell(row=3, column=8, value='Влажность, %')
+        ws.cell(row=3, column=9, value='Уровень освещенности')
+        ws.cell(row=3, column=10, value='Уровень шума')
+        ws.cell(row=3, column=11, value='Уровень CO2, ppm')
+        ws.cell(row=3, column=12, value='Угол отклонения от вертикали')
+        ws.cell(row=3, column=13, value='Нижний порог температуры, *C')
+        ws.cell(row=3, column=14, value='Верхний порог температуры, *C')
+        ws.cell(row=3, column=15, value='Нижний порог влажности, %')
+        ws.cell(row=3, column=16, value='Верхний порог влажности, %')
+        ws.cell(row=3, column=17, value='Нижний порог уровня освещенности')
+        ws.cell(row=3, column=18, value='Верхний порог уровня освещенности')
+        ws.cell(row=3, column=19, value='Нижний порог уровня шума')
+        ws.cell(row=3, column=20, value='Верхний порог уровня шума')
+        ws.cell(row=3, column=21, value='Нижний порог уровня CO2, ppm')
+        ws.cell(row=3, column=22, value='Верхний порог уровня CO2, ppm')
+    ws.cell(row=1, column=1, value='DEVEUI: ')
+    ws.cell(row=1, column=3, value='Название устройства: ')
+    ws.cell(row=1, column=5, value='Аудитория: ')
 
 
 try:
@@ -333,7 +344,7 @@ try:
             macbs_buff = str(data_DB[i][4]).split('+')
             macbs = ''
             for i in macbs_buff:
-                if i != macbs_buff[-1]:
+                if i != macbs_buff[len(macbs_buff) -1]:
                     macbs += f'{i} ({bs_list[find_index(bs_list, i)][1]}) [{bs_list[find_index(bs_list, i)][2]}] + '
                 else:
                     macbs += f'{i} ({bs_list[find_index(bs_list, i)][1]}) [{bs_list[find_index(bs_list, i)][2]}].'
@@ -344,6 +355,7 @@ try:
                     print(f'[Ошибка в отчёте {timestamp_bd}]: К сожалению, данное устройство: "{deveui}" пока не поддерживается\n= = =')
                 continue
             type_device = devices_list[find_index(devices_list, deveui)][1]
+            classroom = devices_list[find_index(devices_list, deveui)][2]
             if (settings_app[1] != ''):
                 if (type_device != settings_app[1]):
                     continue
@@ -423,6 +435,9 @@ try:
                             state_string += 'Тип активной команды: отмена.'
                 ugol_otkl_vert = human_watch(data_raw[9:11])
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -549,6 +564,9 @@ try:
                 temperature = human_watch(data_raw[6:7])
                 
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -646,6 +664,9 @@ try:
                     rssi = human_watch(data_raw[next_start_position:next_start_position + 1])
                     snr = human_watch(data_raw[next_start_position + 1: next_start_position + 2], True) # SNR в дополнительном коде (каком?)
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -705,6 +726,9 @@ try:
                 unix_time = human_watch(data_raw[6:10])
                 timestamp = datetime.fromtimestamp(unix_time * 1e-3)
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -827,6 +851,9 @@ try:
                     else:
                         readings_entrance_four_decode = f'количество импульсов {readings_entrance_four}'
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -888,6 +915,9 @@ try:
                 upper_threshold_temperature = human_watch(data_raw[15:16], True)
 
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -971,6 +1001,9 @@ try:
                     else:
                         indications_discr_in_decode = f'Показания на дискр. входе: вход замкнут'
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -1015,6 +1048,9 @@ try:
                 unix_time = human_watch(data_raw[7:11])
                 timestamp = datetime.fromtimestamp(unix_time * 1e-3)
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -1101,6 +1137,9 @@ try:
                 battery_two = human_watch(data_raw[17:18])
 
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -1165,6 +1204,9 @@ try:
                 upper_threshold_co2 = human_watch(data_raw[25:26])
 
                 ws = wb[f'{deveui} ({type_device})']
+                ws.cell(row=1, column=2, value=f'{deveui}')
+                ws.cell(row=1, column=4, value=f'{type_device}')
+                ws.cell(row=1, column=5, value=f'{classroom}')
                 last_row = 0
                 for row in ws.iter_rows(values_only=True):
                     if any(cell is not None and cell != '' for cell in row):
@@ -1221,28 +1263,28 @@ try:
 
             # демонстрация ТС-12 Вега
             if (type_device == 'ТС-12' and port == 4):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Биты присутствия: {bits_presence}\nПричина отправки пакета: {reason_send_packet}\nНавигационные данные: {coordinates}\nКоличество принятых пакетов: {count_input_packets}\nКоличество отправленных пакетов: {count_output_packets}\nЗаряд батареи (мВ): {battery}\nRSSI: -{rssi} dBm\nSNR: {snr} dB\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nБиты присутствия: {bits_presence}\nПричина отправки пакета: {reason_send_packet}\nНавигационные данные: {coordinates}\nКоличество принятых пакетов: {count_input_packets}\nКоличество отправленных пакетов: {count_output_packets}\nЗаряд батареи (мВ): {battery}\nRSSI: -{rssi} dBm\nSNR: {snr} dB\n= = =')
             
             # демонстрация Smart-MS0101 Вега
             elif (type_device == 'Smart-MS0101' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\n[Основные параметры (начало)]:\n{main_settings_decode}\n[Основные параметры (конец)]\nТемпература: {temperature} *C\nПричина отправки пакета: {reason_send_packet_decode}\nВремя: {timestamp}\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\n[Основные параметры (начало)]:\n{main_settings_decode}\n[Основные параметры (конец)]\nТемпература: {temperature} *C\nПричина отправки пакета: {reason_send_packet_decode}\nВремя: {timestamp}\n= = =')
             
             # демонстрация СИ-12 Вега
             elif (type_device == 'СИ-12' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\n[Основные параметры (начало)]:\n{main_settings_decode}\n[Основные параметры (конец)]\nВремя: {timestamp}\nТемпература: {temperature} *C\n[Показания входов]\n[[Вход 1]]\n{readings_entrance_one_decode}\n[[Вход 2]]\n{readings_entrance_two_decode}\n[[Вход 3]]\n{readings_entrance_three_decode}\n[[Вход 4]]\n{readings_entrance_four_decode}\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\n[Основные параметры (начало)]:\n{main_settings_decode}\n[Основные параметры (конец)]\nВремя: {timestamp}\nТемпература: {temperature} *C\n[Показания входов]\n[[Вход 1]]\n{readings_entrance_one_decode}\n[[Вход 2]]\n{readings_entrance_two_decode}\n[[Вход 3]]\n{readings_entrance_three_decode}\n[[Вход 4]]\n{readings_entrance_four_decode}\n= = =')
             
             # демонстрация Smart-HS0101 Вега
             elif (type_device == 'Smart-HS0101' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nВремя: {timestamp_decode}\nТемпература: {temperature} *C\nВлажность: {humidity}%\n[Состояние датчиков открытия]\n[[Датчик 1]]\n{state_sensor_one_decode}\n[[Датчик 2]]\n{state_sensor_two_decode}\nУгол отклонения от вертикали: {ugol_otkl_vert}*\n[Пороговые значения влажности]: {lower_threshold_humidity}% - {upper_threshold_humidity}%\n[Пороговые значения температуры]: {lower_threshold_temperature} *C - {upper_threshold_temperature} *C\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nВремя: {timestamp_decode}\nТемпература: {temperature} *C\nВлажность: {humidity}%\n[Состояние датчиков открытия]\n[[Датчик 1]]\n{state_sensor_one_decode}\n[[Датчик 2]]\n{state_sensor_two_decode}\nУгол отклонения от вертикали: {ugol_otkl_vert}*\n[Пороговые значения влажности]: {lower_threshold_humidity}% - {upper_threshold_humidity}%\n[Пороговые значения температуры]: {lower_threshold_temperature} *C - {upper_threshold_temperature} *C\n= = =')
             
             # демонстрация Smart Badge Вега
             elif (type_device == 'Smart Badge' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nПричина формирования пакета: {reason_format_packet_decode}\nЗаряд батареи: {battery}%\nВремя: {timestamp}\nТемпература: {temperature} *C\n[Состояние бейджа (начало)]:\n{state_string}\n[Состояние бейджа (конец)]\nУгол отклонения от вертикали: {ugol_otkl_vert}*')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet_decode}\nПричина формирования пакета: {reason_format_packet_decode}\nЗаряд батареи: {battery}%\nВремя: {timestamp}\nТемпература: {temperature} *C\n[Состояние бейджа (начало)]:\n{state_string}\n[Состояние бейджа (конец)]\nУгол отклонения от вертикали: {ugol_otkl_vert}*')
                 if (type_packet == 1):
                     print(f'Координаты (широта, долгота, высота над ср. уровнем моря): {latitude}, {longtitude}, {height} м.\nКурс: {course}*\nСкорость: {speed} км/ч\nКоличество видимых спутников: {count_sputnik}\nКоличество спутников решения: {count_decision_sputnik}\nСостояние меток СИЗ: {state_tag_SIZ_decode}\n= = =')
                 elif (type_packet == 2):
@@ -1252,28 +1294,28 @@ try:
             
             # демонстрация Smart-WB0101 Вега
             elif (type_device == 'Smart-WB0101' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Режим работы: {operating_mode_decode}\nЗаряд батареи: {battery}%\nВремя: {timestamp}\nТемпература: {temperature} *C\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nРежим работы: {operating_mode_decode}\nЗаряд батареи: {battery}%\nВремя: {timestamp}\nТемпература: {temperature} *C\n= = =')
             
             # демонстрация ТД-11 rev2 Вега
             elif (type_device == 'ТД-11' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nПроверка лимитов: {exceed_limits_decode}\nВремя: {timestamp}\nТемпература устройства: {temperature_device} *C\nТемпература датчика NTC: {temperature_ntc} *C\nНижний предел температуры датчика: {lower_threshold_temperature_sensor} *C\nВерхний предел температуры датчика: {upper_threshold_temperature_sensor} *C\n[Состояние входа (начало)]\n{state_in_decode}\n[Состояние входа (конец)]\nПоказатели на дискретном входе: {indications_discr_in_decode}\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nПроверка лимитов: {exceed_limits_decode}\nВремя: {timestamp}\nТемпература устройства: {temperature_device} *C\nТемпература датчика NTC: {temperature_ntc} *C\nНижний предел температуры датчика: {lower_threshold_temperature_sensor} *C\nВерхний предел температуры датчика: {upper_threshold_temperature_sensor} *C\n[Состояние входа (начало)]\n{state_in_decode}\n[Состояние входа (конец)]\nПоказатели на дискретном входе: {indications_discr_in_decode}\n= = =')
 
             # демонстрация Smart-MC0101 Вега
             elif (type_device == 'Smart-MC0101' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet}\nЗаряд батареи: {battery}%\nТемпература: {temperature} *C\nПричина отправки: {reason_send_packet_decode}\nСостояние входов:\n{state_in_decode}\nВремя снятия показаний/Время формирования пакета: {timestamp}\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet}\nЗаряд батареи: {battery}%\nТемпература: {temperature} *C\nПричина отправки: {reason_send_packet_decode}\nСостояние входов:\n{state_in_decode}\nВремя снятия показаний/Время формирования пакета: {timestamp}\n= = =')
         
             # демонстрация Smart-SS0102 Вега
             elif (type_device == 'Smart-SS0102' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nВремя формирования пакета: {timestamp}\nТекущий статус: {current_status_decode}\nНапряжение с приемника: {voltage} мВ\nТок передатчика: {amperage} мА\nТемпература на термисторе: {temperature_termistor} *C\nФлаг - используется батарея 1: {flag_use_battery_one_decode}\nФлаг - используется батарея 2: {flag_use_battery_two_decode}\nФлаг присутствия батареи 1: {flag_presence_battery_one_decode}\nФлаг присутствия батареи 2: {flag_presence_battery_two_decode}\nЗаряд батареи 1: {battery_one}%\nЗаряд батареи 2: {battery_two}%\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet_decode}\nВремя формирования пакета: {timestamp}\nТекущий статус: {current_status_decode}\nНапряжение с приемника: {voltage} мВ\nТок передатчика: {amperage} мА\nТемпература на термисторе: {temperature_termistor} *C\nФлаг - используется батарея 1: {flag_use_battery_one_decode}\nФлаг - используется батарея 2: {flag_use_battery_two_decode}\nФлаг присутствия батареи 1: {flag_presence_battery_one_decode}\nФлаг присутствия батареи 2: {flag_presence_battery_two_decode}\nЗаряд батареи 1: {battery_one}%\nЗаряд батареи 2: {battery_two}%\n= = =')
         
             # демонстрация Smart-UM0101
             elif (type_device == 'Smart-UM0101' and port == 2):
-                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
-                print(f'Тип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nВремя снятия показаний: {timestamp}\nСостояние питания: {state_power_decode}\nТемпература: {temperature} *C\nВлажность: {humidity} %\nУровень освещенности: {light}\nУровень шума: {noise}\nУровень CO2: {co2} ppm\nУгол отклонения от вертикали: {ugol_otkl_vert}\nНижний порог температуры: {lower_threshold_temperature} *C\nВерхний порог температуры: {upper_threshold_temperature} *C\nНижний порог влажности: {lower_threshold_humidity} %\nВерхний порог влажности: {upper_threshold_humidity} %\nНижний порог уровня освещенности: {lower_threshold_light}\nВерхний порог уровня освещенности: {upper_threshold_light}\nНижний порог уровня шума: {lower_threshold_noise}\nВерхний порог уровня шума: {upper_threshold_noise}\nНижний порог уровня CO2: {lower_threshold_co2} ppm\nВерхний порог уровня CO2: {upper_threshold_co2} ppm\n= = =')
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]:\n[ОСНОВНОЕ]:\nТип устройства: {type_device}\nКабинет: {classroom}\nПорт: {port}\nDEVEUI: {deveui}\nПоступило с БС: {macbs}')
+                print(f'[ПЕРЕДАНО]:\nТип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nВремя снятия показаний: {timestamp}\nСостояние питания: {state_power_decode}\nТемпература: {temperature} *C\nВлажность: {humidity} %\nУровень освещенности: {light}\nУровень шума: {noise}\nУровень CO2: {co2} ppm\nУгол отклонения от вертикали: {ugol_otkl_vert}\nНижний порог температуры: {lower_threshold_temperature} *C\nВерхний порог температуры: {upper_threshold_temperature} *C\nНижний порог влажности: {lower_threshold_humidity} %\nВерхний порог влажности: {upper_threshold_humidity} %\nНижний порог уровня освещенности: {lower_threshold_light}\nВерхний порог уровня освещенности: {upper_threshold_light}\nНижний порог уровня шума: {lower_threshold_noise}\nВерхний порог уровня шума: {upper_threshold_noise}\nНижний порог уровня CO2: {lower_threshold_co2} ppm\nВерхний порог уровня CO2: {upper_threshold_co2} ppm\n= = =')
 
         # эксклюзивное оповещение для первого чтения БД
         if (count == 0):
