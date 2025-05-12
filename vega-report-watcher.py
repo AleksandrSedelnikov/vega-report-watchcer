@@ -939,7 +939,7 @@ try:
                 ws.cell(row=last_row+1, column=14, value=upper_threshold_temperature)
 
             # Датчик ТД-11 Вега
-            elif (type_device == 'ТД-11' and port == 2):
+            elif (type_device == 'ТД-11v2' and port == 2):
                 type_packet = human_watch(data_raw[:1])
                 if (type_packet == 0):
                     type_packet_decode = 'передача по времени'
