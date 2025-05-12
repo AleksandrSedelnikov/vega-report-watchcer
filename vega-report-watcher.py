@@ -92,7 +92,8 @@ for i in devices_DB:
         classroom = f'{i[0]}'.split(' ')[1]
         if (classroom == 'Badge'):
             devices_list.append([f'{i[1]}', f'Smart Badge', f'ауд. неизвестно'])
-        devices_list.append([f'{i[1]}', f'{i[0]}'.split(' ')[0], f'ауд. {classroom}'])
+        else:
+            devices_list.append([f'{i[1]}', f'{i[0]}'.split(' ')[0], f'ауд. {classroom}'])
     except:
         devices_list.append([f'{i[1]}', f'{i[0]}'.split(' ')[0], f'ауд. неизвестно'])
 
