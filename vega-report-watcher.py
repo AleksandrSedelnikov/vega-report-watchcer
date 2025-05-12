@@ -7,19 +7,14 @@ from pathlib import Path
 from time import sleep
 import os
 import sys
+import json
 
-version = '1.0.0.1 (от 22.04.2025)'
-version_name = 'букварь'
+version = '1.0.0.2 (от 12.05.2025)'
+version_name = 'верба'
 
 # лист со списком поддерживаемых устройств
 support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11', 'Smart-MC0101', 'Smart-SS0102', 'Smart-UM0101']
 
-
-# лист со списком ус-в в формате каждый элемент - это подмассив формата ['deveui', 'type_device']!!!
-#devices_list = [['0900F6FF31C6CE39', 'СИ-12'], ['0B00F4FFB1BA4E45', 'ТС-12'], ['0D00F2FF91B66E49', 'СИ-12'], ['0C00F3FFF4350BCA', 'ТС-12'], 
-#                ['3735363367318013', 'Smart-HS0101'], ['373536334D316614', 'Smart-MS0101'], ['0600F9FF555DAAA2', 'ТС-12'], ['70B3D50AD00101A3', 'Smart-WB0101'], 
-#                ['F7ABC50C11143E54', 'Smart Badge'], ['70B3D50AD0010A88', 'ТД-11'], ['70B3D50AD00101BB', 'Smart-WB0101'], ['0800F7FF6BC3943C', 'ТС-12'], 
-#                ['3735363351318613', 'Smart-HS0101'], ['3735363356317B13','Smart-MC0101'], ['373536356739790E', 'Smart-SS0102']]
 
 # настройки работы приложения
 settings_app = [0, '', '', 0] # отображать ошибки (0/1), отображать только отчёты указанного устройства (''/'Устройство'), отображать только для определенного deveui (''/'DEVEUI), выводить все или только новые отчёты (0 - все , 1 - только новые)
@@ -48,7 +43,7 @@ def dms_to_decimal(degrees: int, minutes: float, direction: str = '') -> float:
         decimal *= -1
     return decimal
 
-# функция поиска соответствующий deveui записи в листе устройств
+# функция поиска соответствующей записи в листе
 def find_index(mass, key):
     for i, item in enumerate(mass):
         if item[0] == key:
@@ -91,9 +86,15 @@ cursor = connection.cursor()
 devices_DB = cursor.execute(f"SELECT devname, deveui FROM devices").fetchall()
 devices_list = []
 for i in devices_DB:
-    devices_list.append([f'{i[0]}'.split(' ')[0], f'{i[1]}'])
+    devices_list.append([f'{i[1]}', f'{i[0]}'.split(' ')[0]])
 
-print('[Генерация динамического массива устройств завершена]')
+bs_DB = cursor.execute(f"SELECT mac, comment, hostaddress FROM bs").fetchall()
+bs_list = []
+for i in bs_DB:
+    name = json.loads(i[1])['name']
+    bs_list.append([f'{i[0]}', f'{name}'.split('_')[0], {i[2]}])
+
+print('[Генерация динамических массивов устройств и базовых станций завершена]')
 
 print('\n[Настройка параметров визуальной обработки отчётов]')
 
@@ -289,14 +290,14 @@ for i in devices_list:
         ws.cell(row=1, column=2, value=f'Принято с БС')
         ws.cell(row=1, column=3, value='Тип пакета')
         ws.cell(row=1, column=4, value='Заряд батареи, %')
-        ws.cell(row=1, column=5, value='Вресмя снятия показаний')
+        ws.cell(row=1, column=5, value='Время снятия показаний')
         ws.cell(row=1, column=6, value='Состояние питания')
         ws.cell(row=1, column=7, value='Температура, *C')
         ws.cell(row=1, column=8, value='Влажность, %')
         ws.cell(row=1, column=9, value='Уровень освещенности')
         ws.cell(row=1, column=10, value='Уровень шума')
         ws.cell(row=1, column=11, value='Уровень CO2, ppm')
-        ws.cell(row=1, column=12, value='Угол отклоения от вертикали')
+        ws.cell(row=1, column=12, value='Угол отклонения от вертикали')
         ws.cell(row=1, column=13, value='Нижний порог температуры, *C')
         ws.cell(row=1, column=14, value='Верхний порог температуры, *C')
         ws.cell(row=1, column=15, value='Нижний порог влажности, %')
@@ -317,7 +318,6 @@ try:
         # получение данных из таблицы rawdata с колонок data, port, deveui, time
         data_DB = cursor.execute(f"SELECT data, port, deveui, time, macbs FROM rawdata").fetchall()
 
-        print()
         for i in range(len(data_DB) - 1):
             if (i == ''): # на всякий пропуск пустой записи (если будет)
                 continue
@@ -330,7 +330,15 @@ try:
                 processed_time_list.append(unix_time)
             timestamp_bd= datetime.fromtimestamp(unix_time * 1e-3)
             deveui = data_DB[i][2]
-            macbs = data_DB[i][4]
+            macbs_buff = str(data_DB[i][4]).split('+')
+            macbs = ''
+            for i in macbs_buff:
+                if i != macbs_buff[-1]:
+                    macbs += f'{i} ({bs_list[find_index(bs_list, i)][1]}) [{bs_list[find_index(bs_list, i)][2]}] + '
+                else:
+                    macbs += f'{i} ({bs_list[find_index(bs_list, i)][1]}) [{bs_list[find_index(bs_list, i)][2]}].'
+
+
             if (find_index(devices_list, deveui) == -1):
                 if(settings_app[3] == 0):
                     print(f'[Ошибка в отчёте {timestamp_bd}]: К сожалению, данное устройство: "{deveui}" пока не поддерживается\n= = =')
@@ -1156,6 +1164,34 @@ try:
                 lower_threshold_co2 = human_watch(data_raw[24:25])
                 upper_threshold_co2 = human_watch(data_raw[25:26])
 
+                ws = wb[f'{deveui} ({type_device})']
+                last_row = 0
+                for row in ws.iter_rows(values_only=True):
+                    if any(cell is not None and cell != '' for cell in row):
+                        last_row += 1
+                ws.cell(row=last_row+1, column=1, value=timestamp_bd)
+                ws.cell(row=last_row+1, column=2, value=macbs)
+                ws.cell(row=last_row+1, column=3, value=type_packet_decode)
+                ws.cell(row=last_row+1, column=4, value=battery)
+                ws.cell(row=last_row+1, column=5, value=timestamp)
+                ws.cell(row=last_row+1, column=6, value=state_power_decode)
+                ws.cell(row=last_row+1, column=7, value=temperature)
+                ws.cell(row=last_row+1, column=8, value=humidity)
+                ws.cell(row=last_row+1, column=9, value=light)
+                ws.cell(row=last_row+1, column=10, value=noise)
+                ws.cell(row=last_row+1, column=11, value=co2)
+                ws.cell(row=last_row+1, column=12, value=ugol_otkl_vert)
+                ws.cell(row=last_row+1, column=13, value=lower_threshold_temperature)
+                ws.cell(row=last_row+1, column=14, value=upper_threshold_temperature)
+                ws.cell(row=last_row+1, column=15, value=lower_threshold_humidity)
+                ws.cell(row=last_row+1, column=16, value=upper_threshold_humidity)
+                ws.cell(row=last_row+1, column=17, value=lower_threshold_light)
+                ws.cell(row=last_row+1, column=18, value=upper_threshold_light)
+                ws.cell(row=last_row+1, column=19, value=lower_threshold_noise)
+                ws.cell(row=last_row+1, column=20, value=upper_threshold_noise)
+                ws.cell(row=last_row+1, column=21, value=lower_threshold_co2)
+                ws.cell(row=last_row+1, column=22, value=upper_threshold_co2)
+
 
 
             # не поддерживаемые устройства
@@ -1234,6 +1270,11 @@ try:
                 print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
                 print(f'Тип пакета: {type_packet_decode}\nВремя формирования пакета: {timestamp}\nТекущий статус: {current_status_decode}\nНапряжение с приемника: {voltage} мВ\nТок передатчика: {amperage} мА\nТемпература на термисторе: {temperature_termistor} *C\nФлаг - используется батарея 1: {flag_use_battery_one_decode}\nФлаг - используется батарея 2: {flag_use_battery_two_decode}\nФлаг присутствия батареи 1: {flag_presence_battery_one_decode}\nФлаг присутствия батареи 2: {flag_presence_battery_two_decode}\nЗаряд батареи 1: {battery_one}%\nЗаряд батареи 2: {battery_two}%\n= = =')
         
+            # демонстрация Smart-UM0101
+            elif (type_device == 'Smart-UM0101' and port == 2):
+                print(f'= = =\n{note}[Отчёт {timestamp_bd}]: Тип устройства: {type_device} | Порт: {port} | DEVEUI: {deveui} | Поступило с БС: {macbs}')
+                print(f'Тип пакета: {type_packet_decode}\nЗаряд батареи: {battery}%\nВремя снятия показаний: {timestamp}\nСостояние питания: {state_power_decode}\nТемпература: {temperature} *C\nВлажность: {humidity} %\nУровень освещенности: {light}\nУровень шума: {noise}\nУровень CO2: {co2} ppm\nУгол отклонения от вертикали: {ugol_otkl_vert}\nНижний порог температуры: {lower_threshold_temperature} *C\nВерхний порог температуры: {upper_threshold_temperature} *C\nНижний порог влажности: {lower_threshold_humidity} %\nВерхний порог влажности: {upper_threshold_humidity} %\nНижний порог уровня освещенности: {lower_threshold_light}\nВерхний порог уровня освещенности: {upper_threshold_light}\nНижний порог уровня шума: {lower_threshold_noise}\nВерхний порог уровня шума: {upper_threshold_noise}\nНижний порог уровня CO2: {lower_threshold_co2} ppm\nВерхний порог уровня CO2: {upper_threshold_co2} ppm\n= = =')
+
         # эксклюзивное оповещение для первого чтения БД
         if (count == 0):
             if (settings_app[3] == 0):

@@ -129,9 +129,25 @@ flag_presence_battery_{}_decode (one,two) - флаг присутствия ба
 battery_one - заряд на батареи 1 в процентах
 battery_two - заряд на батареи 2 в процентах
 
+= = =
+
+Устройство Smart-UM0101 Вега (универсальный датчик): (приходит на порт 2 LoRaWAN)
+type_packet_decode - тип пакета (без декода type_packet)
+timestamp - время отправки показаний/пакета
+battery - заряд батареи в процентах
+state_power_decode - состояние питания (без декода state_power)
+temperature - температура в градусах
+humidity - влажность в процентах
+light - уровень освещенности
+noise - уровень шума
+co2 - уровень co2 в ppm
+ugol_otkl_vert - угол отклонения от вертикали
+lower_threshold_temprature/humidity/light/noise/co2 - нижний порог уровней: температуры/влажности/освещенности/шума/co2
+upper_threshold_temprature/humidity/light/noise/co2 - верхний порог уровней: температуры/влажности/освещенности/шума/co2
 
 
-[Документация обновлена: 22.04.2025]
+
+[Документация обновлена: 12.05.2025]
 
 
 
