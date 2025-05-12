@@ -12,13 +12,14 @@ version = '1.0.0.1 (от 22.04.2025)'
 version_name = 'букварь'
 
 # лист со списком поддерживаемых устройств
-support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11', 'Smart-MC0101', 'Smart-SS0102']
+support_device_list = ['СИ-12', 'Smart Badge', 'ТС-12', 'Smart-WB0101', 'Smart-HS0101', 'Smart-MS0101', 'ТД-11', 'Smart-MC0101', 'Smart-SS0102', 'Smart-UM0101']
+
 
 # лист со списком ус-в в формате каждый элемент - это подмассив формата ['deveui', 'type_device']!!!
-devices_list = [['0900F6FF31C6CE39', 'СИ-12'], ['0B00F4FFB1BA4E45', 'ТС-12'], ['0D00F2FF91B66E49', 'СИ-12'], ['0C00F3FFF4350BCA', 'ТС-12'], 
-                ['3735363367318013', 'Smart-HS0101'], ['373536334D316614', 'Smart-MS0101'], ['0600F9FF555DAAA2', 'ТС-12'], ['70B3D50AD00101A3', 'Smart-WB0101'], 
-                ['F7ABC50C11143E54', 'Smart Badge'], ['70B3D50AD0010A88', 'ТД-11'], ['70B3D50AD00101BB', 'Smart-WB0101'], ['0800F7FF6BC3943C', 'ТС-12'], 
-                ['3735363351318613', 'Smart-HS0101'], ['3735363356317B13','Smart-MC0101'], ['373536356739790E', 'Smart-SS0102']]
+#devices_list = [['0900F6FF31C6CE39', 'СИ-12'], ['0B00F4FFB1BA4E45', 'ТС-12'], ['0D00F2FF91B66E49', 'СИ-12'], ['0C00F3FFF4350BCA', 'ТС-12'], 
+#                ['3735363367318013', 'Smart-HS0101'], ['373536334D316614', 'Smart-MS0101'], ['0600F9FF555DAAA2', 'ТС-12'], ['70B3D50AD00101A3', 'Smart-WB0101'], 
+#                ['F7ABC50C11143E54', 'Smart Badge'], ['70B3D50AD0010A88', 'ТД-11'], ['70B3D50AD00101BB', 'Smart-WB0101'], ['0800F7FF6BC3943C', 'ТС-12'], 
+#                ['3735363351318613', 'Smart-HS0101'], ['3735363356317B13','Smart-MC0101'], ['373536356739790E', 'Smart-SS0102']]
 
 # настройки работы приложения
 settings_app = [0, '', '', 0] # отображать ошибки (0/1), отображать только отчёты указанного устройства (''/'Устройство'), отображать только для определенного deveui (''/'DEVEUI), выводить все или только новые отчёты (0 - все , 1 - только новые)
@@ -53,6 +54,46 @@ def find_index(mass, key):
         if item[0] == key:
             return i
     return -1  # или None, если не найдено
+
+
+start_time = datetime.now() # время запуска проверки
+count_retry_select_file_path = 0
+while True:
+    print('Выберите файл server.db через диалог выбора файла...')
+    file_path = askopenfilename(
+        title="Выберите файл server.db",
+        filetypes=[("SQLite Database", "server.db")],
+        initialfile="server.db"
+    )
+
+    if not file_path:
+        print(f"Файл не выбран. Оставшееся число попыток: {5 - (count_retry_select_file_path + 1)}. Повтор попытки...")
+        if (count_retry_select_file_path == 4):
+            print('Превышено количество попыток выбора файла.\nПрограмма будет закрыта через 2 секунды.')
+            sleep(2)
+            exit(1)
+        count_retry_select_file_path += 1
+        continue
+
+    path = Path(file_path)
+
+    if path.exists() and path.is_file() and path.suffix == ".db" and path.name == "server.db":
+        print(f'Файл успешно выбран: {path}')
+        break
+    else:
+        print(f'Неверный файл. Убедитесь, что выбран файл server.db. Повтор попытки...')
+
+# подключение к файлу базы данных
+connection = sqlite3.connect(file_path)
+# создание проводника по базе данных
+cursor = connection.cursor()
+
+devices_DB = cursor.execute(f"SELECT devname, deveui FROM devices").fetchall()
+devices_list = []
+for i in devices_DB:
+    devices_list.append([f'{i[0]}'.split(' ')[0], f'{i[1]}'])
+
+print('[Генерация динамического массива устройств завершена]')
 
 print('\n[Настройка параметров визуальной обработки отчётов]')
 
@@ -106,33 +147,6 @@ while True:
             continue
             
 """
-
-start_time = datetime.now() # время запуска проверки
-count_retry_select_file_path = 0
-while True:
-    print('Выберите файл server.db через диалог выбора файла...')
-    file_path = askopenfilename(
-        title="Выберите файл server.db",
-        filetypes=[("SQLite Database", "server.db")],
-        initialfile="server.db"
-    )
-
-    if not file_path:
-        print(f"Файл не выбран. Оставшееся число попыток: {5 - (count_retry_select_file_path + 1)}. Повтор попытки...")
-        if (count_retry_select_file_path == 4):
-            print('Превышено количество попыток выбора файла.\nПрограмма будет закрыта через 2 секунды.')
-            sleep(2)
-            exit(1)
-        count_retry_select_file_path += 1
-        continue
-
-    path = Path(file_path)
-
-    if path.exists() and path.is_file() and path.suffix == ".db" and path.name == "server.db":
-        print(f'Файл успешно выбран: {path}')
-        break
-    else:
-        print(f'Неверный файл. Убедитесь, что выбран файл server.db. Повтор попытки...')
 
 print('[Настройки применены]')
 sleep(1)
@@ -270,12 +284,31 @@ for i in devices_list:
         ws.cell(row=1, column=12, value='Флаг присутствия батареи 2')
         ws.cell(row=1, column=13, value='Заряд батареи 1, %')
         ws.cell(row=1, column=14, value='Заряд батареи 2, %')
+    elif(i[1] == 'Smart-UM0101'):
+        ws.cell(row=1, column=1, value=f'Время отчёта')
+        ws.cell(row=1, column=2, value=f'Принято с БС')
+        ws.cell(row=1, column=3, value='Тип пакета')
+        ws.cell(row=1, column=4, value='Заряд батареи, %')
+        ws.cell(row=1, column=5, value='Вресмя снятия показаний')
+        ws.cell(row=1, column=6, value='Состояние питания')
+        ws.cell(row=1, column=7, value='Температура, *C')
+        ws.cell(row=1, column=8, value='Влажность, %')
+        ws.cell(row=1, column=9, value='Уровень освещенности')
+        ws.cell(row=1, column=10, value='Уровень шума')
+        ws.cell(row=1, column=11, value='Уровень CO2, ppm')
+        ws.cell(row=1, column=12, value='Угол отклоения от вертикали')
+        ws.cell(row=1, column=13, value='Нижний порог температуры, *C')
+        ws.cell(row=1, column=14, value='Верхний порог температуры, *C')
+        ws.cell(row=1, column=15, value='Нижний порог влажности, %')
+        ws.cell(row=1, column=16, value='Верхний порог влажности, %')
+        ws.cell(row=1, column=17, value='Нижний порог уровня освещенности')
+        ws.cell(row=1, column=18, value='Верхний порог уровня освещенности')
+        ws.cell(row=1, column=19, value='Нижний порог уровня шума')
+        ws.cell(row=1, column=20, value='Верхний порог уровня шума')
+        ws.cell(row=1, column=21, value='Нижний порог уровня CO2, ppm')
+        ws.cell(row=1, column=22, value='Верхний порог уровня CO2, ppm')
 
 
-# подключение к файлу базы данных
-connection = sqlite3.connect(file_path)
-# создание проводника по базе данных
-cursor = connection.cursor()
 try:
     print('[Процесс обработки]: Обработка уже полученных ранее отчётов.')
     count = 0
@@ -283,6 +316,8 @@ try:
 
         # получение данных из таблицы rawdata с колонок data, port, deveui, time
         data_DB = cursor.execute(f"SELECT data, port, deveui, time, macbs FROM rawdata").fetchall()
+
+        print()
         for i in range(len(data_DB) - 1):
             if (i == ''): # на всякий пропуск пустой записи (если будет)
                 continue
@@ -1076,6 +1111,51 @@ try:
                 ws.cell(row=last_row+1, column=12, value=flag_presence_battery_two)
                 ws.cell(row=last_row+1, column=13, value=battery_one)
                 ws.cell(row=last_row+1, column=14, value=battery_two)
+            elif (type_device == 'Smart-UM0101' and port == 2):
+                type_packet = human_watch(data_raw[0:1])
+                if (type_packet == 1):
+                    type_packet_decode = 'текущее состояние устройства'
+                elif (type_packet == 2):
+                    type_packet_decode = 'по выходу CO2 за установленные пороги'
+                elif (type_packet == 3):
+                    type_packet_decode = 'по выходу уровня освещенности за установленые пороги'
+                elif (type_packet == 4):
+                    type_packet_decode = 'по акселерометру (резерв)'
+                elif (type_packet == 5):
+                    type_packet_decode = 'по выходу влажности за установленные пороги'
+                elif (type_packet == 6):
+                    type_packet_decode = 'по выходу температуры за установленные пороги'
+                elif (type_packet == 7):
+                    type_packet_decode = 'по выходу уровня шума за определенные пороги'
+                elif (type_packet == 8):
+                    type_packet_decode = 'при обнаружении снятия'
+                else:
+                    type_packet_decode = 'неизвестный тип'
+                battery = human_watch(data_raw[1:2])
+                unix_time = human_watch(data_raw[2:6])
+                timestamp = datetime.fromtimestamp(unix_time * 1e-3)
+                state_power = human_watch(data_raw[6:7])
+                if (state_power == 1):
+                    state_power_decode = 'от батарей'
+                else:
+                    state_power_decode = 'внешнее'
+                temperature = human_watch(data_raw[7:9], True) / 10
+                humidity = human_watch(data_raw[9:10])
+                light = human_watch(data_raw[10:12])
+                noise = human_watch(data_raw[12:13])
+                co2 = human_watch(data_raw[13:15])
+                ugol_otkl_vert = human_watch(data_raw[15:16])
+                lower_threshold_temperature = human_watch(data_raw[16:17], True)
+                upper_threshold_temperature = human_watch(data_raw[17:18], True)
+                lower_threshold_humidity = human_watch(data_raw[18:19])
+                upper_threshold_humidity = human_watch(data_raw[19:20])
+                lower_threshold_light = human_watch(data_raw[20:21])
+                upper_threshold_light = human_watch(data_raw[21:22])
+                lower_threshold_noise = human_watch(data_raw[22:23])
+                upper_threshold_noise = human_watch(data_raw[23:24])
+                lower_threshold_co2 = human_watch(data_raw[24:25])
+                upper_threshold_co2 = human_watch(data_raw[25:26])
+
 
 
             # не поддерживаемые устройства
